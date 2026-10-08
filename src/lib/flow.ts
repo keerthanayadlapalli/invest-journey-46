@@ -5,23 +5,23 @@ export type Screen =
   | "select" | "amount" | "review" | "confirm" | "processing" | "success" | "mine";
 
 export type Answers = {
-  experience?: string;
-  goal?: string; amount?: string; horizon?: string; dip?: string; style?: string;
+  experience?: string | undefined;
+  goal?: string | undefined; amount?: string | undefined; horizon?: string | undefined; dip?: string | undefined; style?: string | undefined;
 };
 
-export type Txn = { productId: string; path: PathId; amount: number; date?: string };
+export type Txn = { productId: string; path: PathId; amount: number; date?: string | undefined };
 
 export type State = {
   screen: Screen;
   mode: "personal" | "browse";
   answers: Answers;
-  path?: PathId;
-  pathOrigin?: "results" | "compare" | "browse";
-  learnOrigin?: "results" | "browse" | "mine";
-  productId?: string;
-  amount?: string;
+  path?: PathId | undefined;
+  pathOrigin?: "results" | "compare" | "browse" | undefined;
+  learnOrigin?: "results" | "browse" | "mine" | undefined;
+  productId?: string | undefined;
+  amount?: string | undefined;
   date: string;
-  txn?: Txn;
+  txn?: Txn | undefined;
 };
 
 export const initialState: State = { screen: "entry", mode: "browse", answers: {}, date: "5th" };

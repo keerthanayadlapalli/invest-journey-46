@@ -68,7 +68,7 @@ function Page({ children, cta }: { children: ReactNode; cta?: ReactNode }) {
     {cta && <div className="fixed inset-x-0 bottom-0 z-10"><div className="mx-auto max-w-md space-y-2 border-t border-border bg-card p-4">{cta}</div></div>}
   </>);
 }
-function H({ title, sub }: { title: string; sub?: string }) {
+function H({ title, sub }: { title: string; sub?: string | undefined }) {
   return <div className="mb-6"><h1 className="text-[26px] font-bold leading-tight tracking-tight text-foreground">{title}</h1>{sub && <p className="mt-2 text-muted-foreground">{sub}</p>}</div>;
 }
 function Btn({ children, variant = "primary", ...p }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "outline" }) {
@@ -87,7 +87,7 @@ function Rows({ rows }: { rows: [string, string][] }) {
   return <dl className="divide-y divide-border rounded-2xl border border-border bg-card">{rows.map(([k, v]) => (
     <div key={k} className="flex justify-between gap-4 px-4 py-3.5 text-sm"><dt className="text-muted-foreground">{k}</dt><dd className="text-right font-semibold text-foreground">{v}</dd></div>))}</dl>;
 }
-function Err({ msg }: { msg?: string }) { return msg ? <p role="alert" className="mt-3 text-sm font-medium text-destructive">{msg}</p> : null; }
+function Err({ msg }: { msg?: string | undefined }) { return msg ? <p role="alert" className="mt-3 text-sm font-medium text-destructive">{msg}</p> : null; }
 
 type Go = (s: Screen, p?: Partial<State>) => void;
 
@@ -108,15 +108,15 @@ function Entry({ go }: { go: Go }) {
 }
 
 function Question({ s, i, up, go }: { s: State; i: number; up: (p: Partial<State>) => void; go: Go }) {
-  const q = QUESTIONS[i];
+  const q = QUESTIONS[i]!;
   const val = s.answers[q.key as keyof typeof s.answers];
   const [err, setErr] = useState<string>();
   const [why, setWhy] = useState(false);
   const last = i === 5;
-  const next = () => { if (!val) return setErr("Please select an option to continue."); go(last ? "results" : qScreens[i + 1]); };
+  const next = () => { if (!val) return setErr("Please select an option to continue."); go(last ? "results" : qScreens[i + 1]!); };
   return (
     <Page cta={<Btn onClick={next}>{last ? "See my options" : "Continue"}</Btn>}>
-      <Back onClick={() => go(i === 0 ? "entry" : qScreens[i - 1])} />
+      <Back onClick={() => go(i === 0 ? "entry" : qScreens[i - 1]!)} />
       <div className="mb-6">
         <p className="mb-2 text-xs font-semibold text-muted-foreground">Step {i + 1} of 6</p>
         <div className="flex gap-1.5">{qScreens.map((_, j) => <div key={j} className={`h-1.5 flex-1 rounded-full ${j <= i ? "bg-mint" : "bg-border"}`} />)}</div>
