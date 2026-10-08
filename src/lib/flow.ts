@@ -42,29 +42,29 @@ export const QUESTIONS = [
 ] as const;
 
 export const PATHS: Record<PathId, { title: string; desc: string; how: string; cadence: string; cta: string }> = {
-  regular: { title: "Invest regularly", desc: "Put a fixed amount into a mutual fund every month using a SIP.", how: "A SIP is a way to invest a set amount on a chosen date each month into a mutual fund.", cadence: "Regular (monthly)", cta: "Explore" },
-  onetime: { title: "Make a one-time investment", desc: "Invest a single amount into a mutual fund whenever you have money.", how: "You invest one lump sum into a mutual fund. Nothing repeats.", cadence: "One-time", cta: "Explore" },
-  stocks: { title: "Explore stocks", desc: "Own a small part of a single company.", how: "A stock is a share in one company. Its value can move a lot day to day.", cadence: "One-time", cta: "Explore" },
-  etfs: { title: "Explore ETFs", desc: "A basket of many stocks you can buy in one go.", how: "An ETF holds many investments and trades on the stock exchange like a stock.", cadence: "One-time", cta: "Explore" },
-  learn: { title: "Learn before investing", desc: "Understand the basics first, at your own pace.", how: "Short, plain-language explainers. No money involved.", cadence: "No investment", cta: "Learn" },
+  regular: { title: "Mutual funds · Regular investing", desc: "Invest a fixed amount in a mutual fund regularly through a SIP.", how: "A SIP is a way to invest a set amount on a chosen date each month into a mutual fund.", cadence: "Regular (monthly)", cta: "Explore" },
+  onetime: { title: "Mutual funds · One-time investment", desc: "Invest a single amount in a mutual fund when you have money available.", how: "You invest one lump sum into a mutual fund. Nothing repeats.", cadence: "One-time", cta: "Explore" },
+  stocks: { title: "Stocks", desc: "Own a small part of an individual company.", how: "Buy and sell shares in individual companies.", cadence: "One-time", cta: "Explore" },
+  etfs: { title: "ETFs", desc: "Explore investments that track an index or market.", how: "Buy and sell units of an exchange-traded fund.", cadence: "One-time", cta: "Explore" },
+  learn: { title: "Learn before investing", desc: "Understand the basics first, at your own pace.", how: "Understand your goals, time horizon and comfort with risk before choosing an investment.", cadence: "Learn first", cta: "Explore" },
 };
 
 export const PRODUCTS: Record<Exclude<PathId, "learn">, { id: string; name: string; desc: string }[]> = {
   regular: [
-    { id: "nifty-sip", name: "Demo Nifty 50 Index Fund", desc: "Illustrative index mutual fund for monthly investing in this prototype." },
-    { id: "lmc-sip", name: "Demo Large & Mid Cap Fund", desc: "Illustrative mutual fund for monthly investing in this prototype." },
+    { id: "nifty-sip", name: "Nifty 50 Index Fund", desc: "Index mutual fund · Monthly SIP" },
+    { id: "lmc-sip", name: "Large & Mid Cap Fund", desc: "Mutual fund · Monthly SIP" },
   ],
   onetime: [
-    { id: "nifty-ot", name: "Demo Nifty 50 Index Fund", desc: "Illustrative index mutual fund for a single investment." },
-    { id: "flexi-ot", name: "Demo Flexi Cap Fund", desc: "Illustrative mutual fund for a single investment." },
+    { id: "nifty-ot", name: "Nifty 50 Index Fund", desc: "Index mutual fund · One-time investment" },
+    { id: "flexi-ot", name: "Flexi Cap Fund", desc: "Mutual fund · One-time investment" },
   ],
   stocks: [
-    { id: "stock-a", name: "Demo Stock A", desc: "Illustrative stock for this prototype." },
-    { id: "stock-b", name: "Demo Stock B", desc: "Illustrative stock for this prototype." },
+    { id: "stock-a", name: "Company A", desc: "Individual company shares" },
+    { id: "stock-b", name: "Company B", desc: "Individual company shares" },
   ],
   etfs: [
-    { id: "etf-a", name: "Demo ETF A", desc: "Illustrative ETF for this prototype." },
-    { id: "etf-b", name: "Demo ETF B", desc: "Illustrative ETF for this prototype." },
+    { id: "etf-a", name: "Broad Market ETF", desc: "Exchange-traded fund · Broad market" },
+    { id: "etf-b", name: "Index ETF", desc: "Exchange-traded fund · Index tracking" },
   ],
 };
 
@@ -76,26 +76,84 @@ export function findProduct(id?: string) {
   return undefined;
 }
 
-/** Pick 2–3 starting paths from the onboarding answers. */
+export function questionnaireComplete(a: Answers): boolean {
+  return QUESTIONS.every(q => q.options.some(option => option === a[q.key]));
+}
+
+/** PDF sections 4–9: explicit precedence, not an invented numerical risk score.
+ * Keep the original six questions; experience is not a recommendation input.
+ * A short/unknown horizon takes precedence; the PDF explicitly permits learning alone.
+ */
 export function personalizedPaths(a: Answers): PathId[] {
-  const cautious = a.horizon === "Within 1 year" || a.dip === "I’d probably sell" || a.dip === "I’m not sure";
-  let list: PathId[];
-  if (cautious) list = ["learn", "onetime", "regular"];
-  else if (a.style === "A little every month") list = ["regular", "etfs", "learn"];
-  else if (a.style === "Occasionally when I have money") list = ["onetime", "etfs", "stocks"];
-  else list = ["regular", "onetime", "learn"];
-  if ((a.goal === "I just want to start" || a.experience === "Never") && !list.includes("learn")) list = [...list.slice(0, 2), "learn"];
-  return list;
+  if (!a.goal || !a.amount || !a.horizon || !a.dip || !a.style) return ["learn"];
+  if (a.horizon === "Within 1 year" || a.horizon === "I’m not sure") return ["learn"];
+  const monthly = a.style === "A little every month";
+  const occasional = a.style === "Occasionally when I have money";
+  const uncertain = a.amount === "Not sure yet" || a.dip === "I’m not sure" || (!monthly && !occasional);
+  const simpler: PathId[] = occasional ? ["onetime", "regular"] : ["regular", "onetime"];
+  if (uncertain || a.horizon === "1–3 years") return ["learn", ...simpler];
+  if (a.dip === "I’d probably sell") {
+    // Section 9 example 2 keeps the monthly preference first; diversified funds
+    // are the third path rather than aggressively surfacing stocks or equity ETFs.
+    return monthly ? ["regular", "learn", "onetime"] : ["learn", ...simpler];
+  }
+  const first: PathId = occasional ? "onetime" : "regular";
+  // Sections 6–9 permit stocks for longer horizons and hands-on interest;
+  // examples 1 and 4 also permit exploration when staying invested for 5+ years.
+  const stocks = a.dip === "I’d stay invested" && a.horizon === "5+ years" && a.goal !== "Build financial security";
+  return [first, "etfs", stocks ? "stocks" : (first === "regular" ? "onetime" : "regular")];
 }
 
 export function whyShown(path: PathId, a: Answers): string {
-  const bits: string[] = [];
-  if (path === "regular" && a.style) bits.push(`you said you’d like to invest “${a.style.toLowerCase()}”`);
-  if (path === "onetime" && a.style) bits.push(`you said “${a.style.toLowerCase()}”`);
-  if (path === "learn" && (a.dip || a.horizon)) bits.push(`you mentioned “${(a.dip ?? a.horizon)!.toLowerCase()}”, so understanding ups and downs first may help`);
-  if ((path === "etfs" || path === "stocks") && a.horizon) bits.push(`your time horizon is “${a.horizon.toLowerCase()}”`);
-  if (a.goal) bits.push(`your goal is to “${a.goal.toLowerCase()}”`);
-  return `Based on what you told us, ${bits.join(" and ") || "this is one way you may want to explore"}. This is an illustrative demo option, not advice.`;
+  const quote = (v: string) => `“${v}”`;
+  const reasons: string[] = [];
+  if (path === "learn") {
+    if (a.horizon === "Within 1 year") reasons.push(`you may need this money ${quote(a.horizon.toLowerCase())}, so time horizon matters before choosing an investment`);
+    else if (a.horizon === "1–3 years") reasons.push(`your ${quote(a.horizon)} horizon calls for understanding how investments can behave over shorter periods`);
+    else if (a.horizon === "I’m not sure") reasons.push(`you answered ${quote(a.horizon)} about when you need the money`);
+    if (a.dip === "I’m not sure" || a.dip === "I’d probably sell") reasons.push(`you answered ${quote(a.dip)} about a temporary 10% fall, so understanding risk first may help`);
+    if (a.amount === "Not sure yet") reasons.push(`you answered ${quote(a.amount)} about your monthly amount, so you can learn before committing money`);
+    if (a.style === "I’m not sure yet") reasons.push(`you answered ${quote(a.style)} about investing style, so there is no need to choose a recurring commitment yet`);
+  } else {
+    if (path === "regular" && a.style === "A little every month") reasons.push(`you prefer ${quote(a.style.toLowerCase())}, which matches a fixed monthly SIP`);
+    if (path === "onetime" && a.style === "Occasionally when I have money") reasons.push(`you prefer ${quote(a.style.toLowerCase())}, which matches investing without a recurring commitment`);
+    if (a.goal === "Build long-term wealth") reasons.push(`your goal is ${quote(a.goal.toLowerCase())}, making longer-term approaches worth exploring`);
+    if (a.goal === "Save for a future goal") reasons.push(`you want to ${quote(a.goal.toLowerCase())} and your ${quote(a.horizon ?? "")} horizon matters before choosing an investment`);
+    if (a.goal === "Build financial security") reasons.push(`you want to ${quote(a.goal.toLowerCase())}, so understanding what you can comfortably afford comes first`);
+    if (a.goal === "I just want to start" && path === "regular") reasons.push(`you said ${quote(a.goal)}, so a simple regular investing habit may be worth exploring`);
+    if (path === "etfs" || path === "stocks") {
+      if (a.horizon) reasons.push(`your time horizon is ${quote(a.horizon)}`);
+      if (a.dip) reasons.push(`you said ${quote(a.dip)} during a temporary 10% fall`);
+      reasons.push(path === "etfs" ? "this makes a diversified market-tracking approach worth exploring, while its value can still move with the market" : "this allows you to explore individual companies, if you want a more hands-on approach; individual-stock risk still matters");
+    }
+    if ((path === "regular" || path === "onetime") && (a.amount === "₹500" || a.amount === "₹1,000")) reasons.push(`you selected ${quote(a.amount)} per month; starting small with a diversified fund can be an option, depending on the fund`);
+    if (a.dip === "I’d probably sell") reasons.push(`you said ${quote(a.dip)} during a temporary fall, so understanding a fund’s diversification and ups and downs matters`);
+    if (a.horizon === "1–3 years") reasons.push("over 1–3 years, equity-oriented investments require caution; this is an option to understand, not a conclusion that it fits your goal");
+    if (a.dip === "I’m not sure") reasons.push("because you are unsure about risk, learn about ups and downs before deciding");
+    if (a.amount === "Not sure yet") reasons.push("because your amount is undecided, explore without committing to an investment");
+  }
+  return reasons.length ? `Based on your answers, ${reasons.join("; ")}.` : "There isn’t enough information to surface an investment category confidently. Understanding the basics first may help.";
+}
+
+export const COMPARISON_ROWS = ["What is it?", "How you invest", "Involvement", "Diversification", "What to consider"] as const;
+export const COMPARISONS: Record<PathId, string[]> = {
+  regular: ["Mutual fund through regular investing", "A fixed amount regularly through a SIP", "Low", "Depends on the fund", "Regular commitment; invest only what you can comfortably afford"],
+  onetime: ["Mutual fund through a one-time investment", "A single amount when money is available", "No recurring commitment", "Depends on the fund", "Your time horizon and comfort with risk before choosing a fund"],
+  etfs: ["Tracks an index or market", "Buy and sell units", "Medium", "Often diversified", "Market movement"],
+  stocks: ["Individual companies", "Buy and sell shares", "Higher; a hands-on approach", "Depends on stocks chosen", "Higher individual-stock risk"],
+  learn: ["Understand investing before choosing", "Learning first, without an investment", "Learn at your own pace", "Learn what diversification means", "Clarify goals, time horizon, risk comfort and investing preference"],
+};
+
+/** Revisiting a question clears it and every later answer. */
+export function navigateState(s: State, screen: Screen, patch: Partial<State> = {}): State {
+  const next = { ...s, ...patch, screen };
+  const index = ["q1", "q2", "q3", "q4", "q5", "q6"].indexOf(screen);
+  if (index >= 0) {
+    next.answers = { ...next.answers };
+    QUESTIONS.slice(index).forEach(q => { delete next.answers[q.key]; });
+  }
+  if ((screen === "results" || screen === "compare") && !questionnaireComplete(next.answers)) return { ...next, screen: "q1", answers: {} };
+  return next;
 }
 
 export function parseAmount(raw?: string): number | null {
@@ -111,6 +169,8 @@ export const inr = (n: number) => "₹" + n.toLocaleString("en-IN");
 export function restore(s: Partial<State> | null): State {
   if (!s || typeof s !== "object" || !s.screen) return initialState;
   const st = { ...initialState, ...s } as State;
+  if (/^q[1-6]$/.test(st.screen)) return navigateState(st, "q1");
+  if ((st.screen === "results" || st.screen === "compare") && !questionnaireComplete(st.answers)) return navigateState(st, "q1");
   if (st.screen === "processing") st.screen = "confirm";
   if ((st.screen === "success" || st.screen === "mine") && !st.txn) return initialState;
   if (["amount", "review", "confirm"].includes(st.screen) && !findProduct(st.productId)) return initialState;
