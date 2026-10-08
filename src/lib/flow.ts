@@ -5,6 +5,7 @@ export type Screen =
   | "select" | "amount" | "review" | "confirm" | "processing" | "success" | "mine";
 
 export type Answers = {
+  experience?: string;
   goal?: string; amount?: string; horizon?: string; dip?: string; style?: string;
 };
 
@@ -26,6 +27,8 @@ export type State = {
 export const initialState: State = { screen: "entry", mode: "browse", answers: {}, date: "5th" };
 
 export const QUESTIONS = [
+  { key: "experience", title: "Have you invested before?", sub: "This helps us understand where you’re starting from.",
+    options: ["Never", "I’ve tried once or twice", "I invest sometimes"] },
   { key: "goal", title: "What are you investing for?", sub: "Choose what matters most to you.",
     options: ["Build long-term wealth", "Save for a future goal", "Build financial security", "I just want to start"] },
   { key: "amount", title: "How much could you comfortably invest each month?", sub: "Choose an amount that feels realistic for you.",
@@ -37,7 +40,6 @@ export const QUESTIONS = [
   { key: "style", title: "How would you like to invest?", sub: "There’s no right answer. Choose what feels realistic for you.",
     options: ["A little every month", "Occasionally when I have money", "I’m not sure yet"] },
 ] as const;
-// Note: spec has 6 steps; step 1 of 6 is the goal... we map q1..q6 below.
 
 export const PATHS: Record<PathId, { title: string; desc: string; how: string; cadence: string; cta: string }> = {
   regular: { title: "Invest regularly", desc: "Put a fixed amount into a mutual fund every month using a SIP.", how: "A SIP is a way to invest a set amount on a chosen date each month into a mutual fund.", cadence: "Regular (monthly)", cta: "Explore" },
@@ -82,7 +84,7 @@ export function personalizedPaths(a: Answers): PathId[] {
   else if (a.style === "A little every month") list = ["regular", "etfs", "learn"];
   else if (a.style === "Occasionally when I have money") list = ["onetime", "etfs", "stocks"];
   else list = ["regular", "onetime", "learn"];
-  if (a.goal === "I just want to start" && !list.includes("learn")) list = [...list.slice(0, 2), "learn"];
+  if ((a.goal === "I just want to start" || a.experience === "Never") && !list.includes("learn")) list = [...list.slice(0, 2), "learn"];
   return list;
 }
 
