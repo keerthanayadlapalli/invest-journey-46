@@ -4,10 +4,10 @@ import GrowwApp from "@/components/GrowwApp";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Groww First Investment — Case Study Prototype" },
-      { name: "description", content: "A demo journey helping first-time Gen Z investors understand where to start. No real money." },
-      { property: "og:title", content: "Groww First Investment — Case Study Prototype" },
-      { property: "og:description", content: "From “I don’t know where to start” to a completed demo investment." },
+      { title: "Groww — Your starting options" },
+      { name: "description", content: "Understand investment categories, compare your starting options and choose what to explore with Groww." },
+      { property: "og:title", content: "Groww — Your starting options" },
+      { property: "og:description", content: "Explore and compare investment categories based on your goals, time horizon and investing preferences." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
