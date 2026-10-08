@@ -1,24 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import GrowwApp from "@/components/GrowwApp";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "Groww First Investment — Case Study Prototype" },
+      { name: "description", content: "A demo journey helping first-time Gen Z investors understand where to start. No real money." },
+      { property: "og:title", content: "Groww First Investment — Case Study Prototype" },
+      { property: "og:description", content: "From “I don’t know where to start” to a completed demo investment." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: GrowwApp,
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
